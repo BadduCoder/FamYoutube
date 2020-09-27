@@ -1,10 +1,14 @@
 #Cache files
 __pycache__
 *.pyc
+celerybeat-schedule
+
 
 # Environments
 env
 
 #database
 db.sqlite3
+
+
 
