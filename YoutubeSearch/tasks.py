@@ -1,6 +1,7 @@
 from googleapiclient.discovery import build
 from datetime import datetime, timedelta
 from .models import VideoData, Thumbnails
+from FamYoutube.celery import app
 
 
 def insert_video(videoId, rowData):
@@ -56,7 +57,8 @@ def populate_data(itemsData):
     return True    
 
 
-def fetch_data(request):
+@app.task
+def fetch_data():
     """
         Input: None
         This function fetches all the videos published with specific term in there title/description
@@ -67,7 +69,7 @@ def fetch_data(request):
     timestamp = now.strftime('%Y-%m-%dT%H:%M:%SZ')
     
     #create the object, fetch collection and execute
-    service = build('youtube','v3',developerKey='insert-key-here')
+    service = build('youtube','v3',developerKey='AIzaSyDVhavBrSXEupq1JcJMSXVOxtTymEEY6cE')
     collection = service.search().list(part=['id','snippet'],q='prank', type='video', order='date', publishedAfter=timestamp)
     response = collection.execute()
     
