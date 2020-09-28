@@ -4,8 +4,9 @@ from datetime import datetime, timedelta
 from .models import VideoData, Thumbnails
 from FamYoutube.celery import app
 from django.conf import settings
-from urllib3.exceptions import HTTPError 
 from django.db import IntegrityError
+from .utils import fromIsoToDateTime, fromDateTimeToIso
+
 
 def insert_video(videoId, rowData):
     """
@@ -19,7 +20,7 @@ def insert_video(videoId, rowData):
             title = rowData['title'],
             description = rowData['description'],
             channelTitle = rowData['channelTitle'],
-            publishedAt = rowData['publishedAt'],
+            publishedAt = fromIsoToDateTime(rowData['publishedAt']),
         )
     
     try:
@@ -82,11 +83,9 @@ def fetch_data():
     # Logging
     print("Fetching new data...")
 
-    # Get current datetime, convert it to timestamp of 10 minutes before.
-    
-    now = datetime.now() - timedelta(minutes=10)
-    timestamp = now.strftime('%Y-%m-%dT%H:%M:%SZ')
-    
+    # Get current datetime, convert it to timestamp of 10 minutes before. 
+    timestamp = datetime.now() - timedelta(minutes=10)
+     
     # Try to fetch record with latest publishedAt.  
     try:
         # If found, we use it's timestamp to search for videos published after this
@@ -96,6 +95,8 @@ def fetch_data():
         # If not found, we use the default timestamp i.e 10 minute delta from current time
         print(f"Using default timestamp {timestamp}")
 
+    timestamp = fromDateTimeToIso(timestamp)
+        
     # Index of which API Key is being used
     curr_key_index = 0
     
@@ -109,11 +110,8 @@ def fetch_data():
 
     # Loop to try out all keys until all have been exhausted
     while is_data_fetched == False:
-
-        # Assume, the current call will be successfull
         is_data_fetched = True
 
-        #Debug log (Which key is currently being used)
         print(f"Using key ({curr_key_index}) = {settings.YOUTUBE_API_KEY[curr_key_index]}")
 
         service = build('youtube','v3',developerKey=settings.YOUTUBE_API_KEY[curr_key_index], cache_discovery=False)
@@ -123,17 +121,12 @@ def fetch_data():
         try:
             response = collection.execute()
         except HttpError as e:
-            # Print the exception.
             print(e)
             curr_key_index = curr_key_index + 1 
-
-            # Increment Total API calls that failed
             total_api_call_fails = total_api_call_fails + 1
 
             # If total keys is less than current index, take mod
             curr_key_index = curr_key_index % len(settings.YOUTUBE_API_KEY)
-            
-            # Contradiction of assumption, the data wasn't fetched
             is_data_fetched = False       
 
         # If all the keys have been tried, break the loop

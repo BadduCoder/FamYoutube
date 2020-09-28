@@ -6,7 +6,7 @@ class VideoData(models.Model):
     id = models.CharField(primary_key=True, max_length=16)
     title = models.CharField(max_length=128, blank=False, null=False)
     description = models.TextField()
-    publishedAt = models.CharField(max_length=20)
+    publishedAt = models.DateTimeField(blank=False, null=False)
     channelTitle = models.CharField(max_length=128)
 
     def __str__(self):
