@@ -30,8 +30,9 @@ To set up this project follow below steps:
 
 ## Documentation
 
-### GET API : `localhost:[PORT]/get-data/`
-
+### GET API : List API
+`localhost:[PORT]/get-data/`
+* Default PORT Value = 8000
 This API endpoint if called without any arguments, returns all the videos present in database.
 It can be called with following parameters:
 
@@ -39,6 +40,7 @@ It can be called with following parameters:
     * Example `/get-data/?page=2`
 2. q
     * Example `/get-data/?q=IPL`
+    * Returns only those records, which contain q's value in title/description
 3. sortby 
     * Example `/get-data/?sortby=title`
     * It takes only following arguments [`id`,`-id`,`publishedAt`,`-publishedAt`]
