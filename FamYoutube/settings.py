@@ -12,7 +12,7 @@ SECRET_KEY = config('SECRET_KEY')
 YOUTUBE_API_KEY = config('YOUTUBE_API_KEY', cast=lambda v: [s.strip() for s in v.split(',')])
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG',default=False)
+# DEBUG = config('DEBUG',default=False)
 
 ALLOWED_HOSTS = ['*']
 
