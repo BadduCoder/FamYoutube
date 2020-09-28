@@ -1,7 +1,7 @@
 from rest_framework import generics
 from .models import VideoData
 from .serializers import VideoDataSerializer
-from .constants import SORT_PROPERTIES
+from .constants import DEFAULT_SORT_PROPERTY, SORT_PROPERTIES
 
 
 class ListVideoView(generics.ListAPIView):
