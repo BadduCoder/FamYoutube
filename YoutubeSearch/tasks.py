@@ -100,9 +100,7 @@ def fetch_data():
     # Index of which API Key is being used
     curr_key_index = 0
     
-    # Has data been fetched from youtube API 
     is_data_fetched = False
-    # Total API calls which failed to execute
     total_api_call_fails = 0
 
     # A dummy response, in case all API request fail
