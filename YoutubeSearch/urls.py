@@ -1,10 +1,9 @@
 from django.contrib import admin
 from django.urls import path
-from .views import getData
+from .views import ListVideoView
 from .tasks import fetch_data
 
 
 urlpatterns = [
-    path('get-data/', getData),
-    path('put-data/', fetch_data),
+    path('get-data/', ListVideoView.as_view())
 ]

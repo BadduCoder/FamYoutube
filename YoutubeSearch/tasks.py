@@ -2,6 +2,7 @@ from googleapiclient.discovery import build
 from datetime import datetime, timedelta
 from .models import VideoData, Thumbnails
 from FamYoutube.celery import app
+from django.conf import settings
 
 
 def insert_video(videoId, rowData):
@@ -17,7 +18,11 @@ def insert_video(videoId, rowData):
         channelTitle = rowData['channelTitle'],
         publishedAt = rowData['publishedAt'],
     )
-    videoData.save()
+    try:
+        videoData.save()
+    except e:
+        print(e)
+        return False
 
     return videoData
 
@@ -64,15 +69,20 @@ def fetch_data():
         This function fetches all the videos published with specific term in there title/description
         for every 10 seconds in background.
     """
+    #Logging
+    print("Fetching new data...")
+
     #Get current datetime, convert it to timestamp of 10 seconds before.
     now = datetime.now() - timedelta(seconds=10)
     timestamp = now.strftime('%Y-%m-%dT%H:%M:%SZ')
     
     #create the object, fetch collection and execute
-    service = build('youtube','v3',developerKey='AIzaSyDVhavBrSXEupq1JcJMSXVOxtTymEEY6cE')
-    collection = service.search().list(part=['id','snippet'],q='prank', type='video', order='date', publishedAfter=timestamp)
+    service = build('youtube','v3',developerKey=settings.YOUTUBE_API_KEY, cache_discovery=False)
+    collection = service.search().list(maxResults=250,part=['id','snippet'],q='cricket', type='video', order='date', publishedAfter=timestamp)
     response = collection.execute()
     
+    print("Fetched "+str(len(response['items']))+" items")
+    print(response)
     #If list contains items, populate database
     if len(response['items']) > 0:
         return populate_data(response['items'])

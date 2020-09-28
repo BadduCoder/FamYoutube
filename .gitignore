@@ -4,11 +4,11 @@ __pycache__
 celerybeat-schedule
 
 
-# Environments
+# Environments Files
 env
+.env
 
 #database
 db.sqlite3
-
 
 

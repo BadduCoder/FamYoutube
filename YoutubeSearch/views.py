@@ -1,14 +1,15 @@
-from django.shortcuts import render
-from rest_framework import status
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from googleapiclient.discovery import build
+from rest_framework import generics
+from .models import VideoData
+from .serializers import VideoDataSerializer
 
 
-@api_view(['GET'])
-def getData(request):
-    """
-    Returns list of all the youtube videos that match the search criteria
-    """
-    
-    return Response("construction-on-progress", status=status.HTTP_200_OK)  
+class ListVideoView(generics.ListAPIView):
+
+    serializer_class = VideoDataSerializer
+
+    def get_queryset(self):
+        """
+        Returns list of all the youtube videos that match the search criteria
+        """
+        videos = VideoData.objects.all().order_by('-publishedAt')
+        return videos  
