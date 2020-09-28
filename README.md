@@ -25,8 +25,8 @@ To set up this project follow below steps:
 6. Copy `env.example` as `.env` in root directory and put the values required.
 7. Run all the migrations using commands `python3 manage.py migrate`
 8. To run background task using celery, run following commands in sequence:
-    * `celery -A FamYoutube beat`
     * `celery -A FamYoutube worker`
+    * `celery -A FamYoutube beat`
 9. To run the server, run the command `python3 manage.py runserver`
 
 
