@@ -11,6 +11,7 @@ def insert_video(videoId, rowData):
     """
     Function receives videoId, and other video details,
     Inserts them into the database.
+    If video is successfully inserted, video thumbnails are inserted.
     Returns the instance created in database.
     """
     video = VideoData(
@@ -36,7 +37,8 @@ def insert_video(videoId, rowData):
 def insert_thumbnail(thumbnail, thumbnail_type, video):
     """
     Function receives thumbnail data, thumbnail type and instance of parent video,
-    It inserts them into database and links the item to it's parent video.
+    It inserts them into database and links thumbnails to it's parent video.
+    Returns the instance of thumbnail object created
     """
     thumbnail = Thumbnails(
             thumbnail_type = thumbnail_type,
@@ -48,7 +50,9 @@ def insert_thumbnail(thumbnail, thumbnail_type, video):
     try:
         thumbnail.save()
     except IntegrityError as e:
-        return False
+        return None
+
+    return thumbnail
 
     
 
@@ -70,36 +74,43 @@ def populate_data(itemsData):
 @app.task
 def fetch_data():
     """
-        Input: None
+        Async task handled by celery and executed every 10 seconds.
         This function fetches all the videos published with specific term in there title/description
-        for every 10 seconds in background.
+        for every 10 seconds in background and populates database with that data.
     """
-    #Logging
+    
+    # Logging
     print("Fetching new data...")
 
-    #Get current datetime, convert it to timestamp of 30 seconds before.
-    # obj= Model.objects.filter(testfield=12).latest('testfield')
-
+    # Get current datetime, convert it to timestamp of 10 minutes before.
+    
     now = datetime.now() - timedelta(minutes=10)
     timestamp = now.strftime('%Y-%m-%dT%H:%M:%SZ')
     
+    # Try to fetch record with latest publishedAt.  
     try:
+        # If found, we use it's timestamp to search for videos published after this
         timestamp = VideoData.objects.latest('publishedAt').publishedAt
         print(f"Got existing timestamp {timestamp}")
     except VideoData.DoesNotExist:
+        # If not found, we use the default timestamp i.e 10 minute delta from current time
         print(f"Using default timestamp {timestamp}")
-    
-    print(timestamp)
 
+    # Index of which API Key is being used
     curr_key_index = 0
     
+    # Has data been fetched from youtube API 
     is_data_fetched = False
+    # Total API calls which failed to execute
     total_api_call_fails = 0
 
-    #Loop to try out all keys until all have been exhausted
+    # A dummy response, in case all API request fail
     response = {'items':[]}
 
+    # Loop to try out all keys until all have been exhausted
     while is_data_fetched == False:
+
+        # Assume, the current call will be successfull
         is_data_fetched = True
 
         #Debug log (Which key is currently being used)
@@ -108,15 +119,24 @@ def fetch_data():
         service = build('youtube','v3',developerKey=settings.YOUTUBE_API_KEY[curr_key_index], cache_discovery=False)
         collection = service.search().list(maxResults=25,part=['id','snippet'],q='cricket', type='video', order='date', publishedAfter=timestamp)
         
+        # Try executing API call and catch HttpError Exception 
         try:
             response = collection.execute()
         except HttpError as e:
+            # Print the exception.
             print(e)
             curr_key_index = curr_key_index + 1 
+
+            # Increment Total API calls that failed
             total_api_call_fails = total_api_call_fails + 1
+
+            # If total keys is less than current index, take mod
             curr_key_index = curr_key_index % len(settings.YOUTUBE_API_KEY)
+            
+            # Contradiction of assumption, the data wasn't fetched
             is_data_fetched = False       
 
+        # If all the keys have been tried, break the loop
         if total_api_call_fails == len(settings.YOUTUBE_API_KEY):
             print("API call limit exhausted for all keys")
             break
