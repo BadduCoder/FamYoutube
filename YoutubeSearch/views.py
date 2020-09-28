@@ -1,8 +1,8 @@
 from rest_framework import generics
-from django.db.models import Q
 from .models import VideoData
 from .serializers import VideoDataSerializer
 from .constants import SORT_PROPERTIES
+
 
 class ListVideoView(generics.ListAPIView):
 
@@ -20,7 +20,7 @@ class ListVideoView(generics.ListAPIView):
             # Get the query provided by user
             query = self.request.GET.get('q')
             # Filter all records with title and description containing query
-            videos = VideoData.objects.filter(Q(title__icontains=query) | Q(description__icontains=query))    
+            videos = VideoData.objects.filter(title__icontains=query)    
         else:
             videos = VideoData.objects.all()
         
@@ -36,5 +36,5 @@ class ListVideoView(generics.ListAPIView):
         
         # If invalid/no sortby argument provided, sort with default property
         videos = videos.order_by(DEFAULT_SORT_PROPERTY)
-        
+
         return videos      
