@@ -114,21 +114,33 @@ def fetch_data():
 
         print(f"Using key ({curr_key_index}) = {settings.YOUTUBE_API_KEY[curr_key_index]}")
 
-        service = build('youtube','v3',developerKey=settings.YOUTUBE_API_KEY[curr_key_index], cache_discovery=False)
-        collection = service.search().list(maxResults=25,part=['id','snippet'],q='cricket', type='video', order='date', publishedAfter=timestamp)
-        
-        # Try executing API call and catch HttpError Exception 
         try:
+            service = build(
+                'youtube',
+                'v3',
+                developerKey=settings.YOUTUBE_API_KEY[curr_key_index], 
+                cache_discovery=False
+            )
+            collection = service.search().list(
+                maxResults=25,
+                part=['id','snippet'],
+                q='cricket',
+                type='video',
+                order='date',
+                publishedAfter=timestamp
+            )
+
             response = collection.execute()
         except HttpError as e:
-            print(e)
+            # Exception when either the key is wrong or API limit is exhausted
+            print(f"!!!!DEBUG LOG!!!! {e}")
             curr_key_index = curr_key_index + 1 
             total_api_call_fails = total_api_call_fails + 1
 
             # If total keys is less than current index, take mod
             curr_key_index = curr_key_index % len(settings.YOUTUBE_API_KEY)
             is_data_fetched = False       
-
+        
         # If all the keys have been tried, break the loop
         if total_api_call_fails == len(settings.YOUTUBE_API_KEY):
             print("API call limit exhausted for all keys")
