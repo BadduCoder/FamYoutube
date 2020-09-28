@@ -22,10 +22,11 @@ To set up this project follow below steps:
 3. Activate virtualenv using the command `source env/bin/activate`
 4. Install requirements of the project using command `pip3 install -r requirements.txt`
 5. Run all the migrations using commands `python3 manage.py migrate`
-5. To run background task using celery, run following commands in sequence:
+6. Copy `env.example` as `.env` in root directory and put the values required.
+7. To run background task using celery, run following commands in sequence:
     * `celery -A FamYoutube beat`
     * `celery -A FamYoutube worker`
-6. To run the server, run the command `python3 manage.py runserver`
+8. To run the server, run the command `python3 manage.py runserver`
 
 
 ## Documentation
