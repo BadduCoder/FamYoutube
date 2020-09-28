@@ -11,5 +11,8 @@ class ListVideoView(generics.ListAPIView):
         """
         Returns list of all the youtube videos that match the search criteria
         """
+        if 'q' in self.request.GET:
+            print("GOt a Q")
+        
         videos = VideoData.objects.all().order_by('-publishedAt')
-        return videos  
+        return videos      

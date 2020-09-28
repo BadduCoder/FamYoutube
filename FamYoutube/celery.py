@@ -19,7 +19,7 @@ app.autodiscover_tasks()
 app.conf.beat_schedule = {
     'update-youtube-data-every-10-secs':{
         'task':'YoutubeSearch.tasks.fetch_data',
-        'schedule':10.0
+        'schedule':30.0
     }
 }
 

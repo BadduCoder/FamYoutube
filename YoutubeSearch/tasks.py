@@ -1,9 +1,11 @@
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from datetime import datetime, timedelta
 from .models import VideoData, Thumbnails
 from FamYoutube.celery import app
 from django.conf import settings
-
+from urllib3.exceptions import HTTPError 
+from django.db import IntegrityError
 
 def insert_video(videoId, rowData):
     """
@@ -11,20 +13,24 @@ def insert_video(videoId, rowData):
     Inserts them into the database.
     Returns the instance created in database.
     """
-    videoData = VideoData(
-        id = videoId,
-        title = rowData['title'],
-        description = rowData['description'],
-        channelTitle = rowData['channelTitle'],
-        publishedAt = rowData['publishedAt'],
-    )
+    video = VideoData(
+            id = videoId,
+            title = rowData['title'],
+            description = rowData['description'],
+            channelTitle = rowData['channelTitle'],
+            publishedAt = rowData['publishedAt'],
+        )
+    
     try:
-        videoData.save()
-    except e:
-        print(e)
-        return False
+        video.save()
+    except IntegrityError as e:
+        return None
 
-    return videoData
+    insert_thumbnail(rowData['thumbnails']['default'],'DE',video)
+    insert_thumbnail(rowData['thumbnails']['medium'],'ME',video)
+    insert_thumbnail(rowData['thumbnails']['high'],'HI',video)
+
+    return video
 
 
 def insert_thumbnail(thumbnail, thumbnail_type, video):
@@ -33,33 +39,32 @@ def insert_thumbnail(thumbnail, thumbnail_type, video):
     It inserts them into database and links the item to it's parent video.
     """
     thumbnail = Thumbnails(
-        thumbnail_type = thumbnail_type,
-        video = video,
-        height = thumbnail['height'],
-        width = thumbnail['width'],
-        url = thumbnail['url']
-    )
+            thumbnail_type = thumbnail_type,
+            video = video,
+            height = thumbnail['height'],
+            width = thumbnail['width'],
+            url = thumbnail['url']
+        )
+    try:
+        thumbnail.save()
+    except IntegrityError as e:
+        return False
 
-    thumbnail.save()
-
+    
 
 def populate_data(itemsData):
     """
         Input: List of video data response from youtube
         This function receives list of video data and inserts them into the database 
+        Returns count of successful insertions
     """
+    count = 0
     for item in itemsData:
-        #Insert video data into database
         video = insert_video(item['id']['videoId'], item['snippet'])
-        
-        #If video has been inserted, insert it's thumbnails
-        if video is False:
-            return False
-        else:    
-            thumbnail = insert_thumbnail(item['snippet']['thumbnails']['default'], 'DE', video)
-            thumbnail = insert_thumbnail(item['snippet']['thumbnails']['medium'], 'ME', video)
-            thumbnail = insert_thumbnail(item['snippet']['thumbnails']['high'], 'HI', video)
-    return True    
+        if video is not None:
+            count = count + 1
+
+    return count
 
 
 @app.task
@@ -72,19 +77,55 @@ def fetch_data():
     #Logging
     print("Fetching new data...")
 
-    #Get current datetime, convert it to timestamp of 10 seconds before.
-    now = datetime.now() - timedelta(seconds=10)
+    #Get current datetime, convert it to timestamp of 30 seconds before.
+    # obj= Model.objects.filter(testfield=12).latest('testfield')
+
+    now = datetime.now() - timedelta(minutes=10)
     timestamp = now.strftime('%Y-%m-%dT%H:%M:%SZ')
     
-    #create the object, fetch collection and execute
-    service = build('youtube','v3',developerKey=settings.YOUTUBE_API_KEY, cache_discovery=False)
-    collection = service.search().list(maxResults=250,part=['id','snippet'],q='cricket', type='video', order='date', publishedAfter=timestamp)
-    response = collection.execute()
+    try:
+        timestamp = VideoData.objects.latest('publishedAt').publishedAt
+        print(f"Got existing timestamp {timestamp}")
+    except VideoData.DoesNotExist:
+        print(f"Using default timestamp {timestamp}")
     
-    print("Fetched "+str(len(response['items']))+" items")
-    print(response)
+    print(timestamp)
+
+    curr_key_index = 0
+    
+    is_data_fetched = False
+    total_api_call_fails = 0
+
+    #Loop to try out all keys until all have been exhausted
+    response = {'items':[]}
+
+    while is_data_fetched == False:
+        is_data_fetched = True
+
+        #Debug log (Which key is currently being used)
+        print(f"Using key ({curr_key_index}) = {settings.YOUTUBE_API_KEY[curr_key_index]}")
+
+        service = build('youtube','v3',developerKey=settings.YOUTUBE_API_KEY[curr_key_index], cache_discovery=False)
+        collection = service.search().list(maxResults=25,part=['id','snippet'],q='cricket', type='video', order='date', publishedAfter=timestamp)
+        
+        try:
+            response = collection.execute()
+        except HttpError as e:
+            print(e)
+            curr_key_index = curr_key_index + 1 
+            total_api_call_fails = total_api_call_fails + 1
+            curr_key_index = curr_key_index % len(settings.YOUTUBE_API_KEY)
+            is_data_fetched = False       
+
+        if total_api_call_fails == len(settings.YOUTUBE_API_KEY):
+            print("API call limit exhausted for all keys")
+            break
+
+    print(f"Fetched {len(response['items'])} items")
+
     #If list contains items, populate database
     if len(response['items']) > 0:
-        return populate_data(response['items'])
+        count = populate_data(response['items'])
+        print(f"Successfully inserted {count} data")
 
     return False

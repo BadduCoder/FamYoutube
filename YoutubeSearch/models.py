@@ -1,5 +1,5 @@
 from django.db import models
-from .constants import thumbnail_choice
+from .constants import THUMBNAIL_CHOICES
 
 
 class VideoData(models.Model):
@@ -15,10 +15,13 @@ class VideoData(models.Model):
 
 class Thumbnails(models.Model):
     video = models.ForeignKey(VideoData, related_name='thumbnails', on_delete=models.CASCADE)
-    thumbnail_type = models.CharField(max_length=2, choices=thumbnail_choice)
+    thumbnail_type = models.CharField(max_length=2, choices=THUMBNAIL_CHOICES)
     height = models.IntegerField()
     width = models.IntegerField()
     url = models.URLField()
+
+    class Meta:
+        unique_together = ('video', 'thumbnail_type')
 
     def __str__(self):
         return f"{self.video.title} ({self.thumbnail_type})"
