@@ -18,15 +18,16 @@ To set up this project follow below steps:
 ### Steps :
 
 1. Clone this repository with command `git clone https://github.com/BadduCoder/FamYoutube`
-2. Create virtual environment using command `virtualenv --python=python3 env`
-3. Activate virtualenv using the command `source env/bin/activate`
-4. Install requirements of the project using command `pip3 install -r requirements.txt`
-5. Run all the migrations using commands `python3 manage.py migrate`
+2. Change working directory to FamYoutube using `cd FamYotube/`
+3. Create virtual environment using command `virtualenv --python=python3 env`
+4. Activate virtualenv using the command `source env/bin/activate`
+5. Install requirements of the project using command `pip3 install -r requirements.txt`
 6. Copy `env.example` as `.env` in root directory and put the values required.
-7. To run background task using celery, run following commands in sequence:
+7. Run all the migrations using commands `python3 manage.py migrate`
+8. To run background task using celery, run following commands in sequence:
     * `celery -A FamYoutube beat`
     * `celery -A FamYoutube worker`
-8. To run the server, run the command `python3 manage.py runserver`
+9. To run the server, run the command `python3 manage.py runserver`
 
 
 ## Documentation
