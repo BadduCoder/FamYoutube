@@ -2,11 +2,13 @@ from rest_framework import generics
 from .models import VideoData
 from .serializers import VideoDataSerializer
 from .constants import DEFAULT_SORT_PROPERTY, SORT_PROPERTIES
+from .customPagination import CustomCursorPagination
 
 
 class ListVideoView(generics.ListAPIView):
 
     serializer_class = VideoDataSerializer
+    pagination_class = CustomCursorPagination
 
     def get_queryset(self):
         """
